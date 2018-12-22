@@ -88,8 +88,11 @@ def line_extractor(delim=' ', encoding='utf-8', errors='strict'):
     def _extractor(docfile):
         for line in docfile:
             line = line.decode(encoding, errors).strip()
-            name, data = line.split(delim, 1)
-            yield Text(name, data)
+            try:
+              name, data = line.split(delim, 1)
+              yield Text(name, data)
+            except:
+              continue
     return _extractor
 
 
@@ -648,7 +651,7 @@ def remove_nonexistent_train_words(train, test):
 
     return train, test
 
-def train_test_split(corpus, num_train=None, num_test=None, random_seed=None, remove_testonly_words=True, **kwargs):
+def train_test_split(corpus, num_train=None, num_test=None, random_seed=None, remove_testonly_words=True, tr=None, te=None, **kwargs):
 
     if not random_seed:
         random_seed = time.time()
@@ -665,6 +668,11 @@ def train_test_split(corpus, num_train=None, num_test=None, random_seed=None, re
     try:
         doc_ids = np.random.permutation(len(corpus.documents))
         train_ids, test_ids = doc_ids[:num_train], doc_ids[num_train: num_train+num_test]
+
+        if tr and te:
+          train_ids = tr
+          test_ids = te       
+
         train = Corpus([corpus.documents[d] for d in train_ids], corpus.vocabulary, corpus.metadata)
         test = Corpus([corpus.documents[d] for d in test_ids], corpus.vocabulary, corpus.metadata)
         if remove_testonly_words:

@@ -20,6 +20,7 @@ import posixpath
 
 download_dir = os.path.join(os.getenv('HOME'), '.ankura')
 
+
 def _path(name):
     return os.path.join(download_dir, name)
 
@@ -223,6 +224,103 @@ def toy():
     p.tokenizer = pipeline.frequency_tokenizer(p)
     return p.run(_path('toy.pickle'))
 
+def quiz():
+    """Gets a corpus containing roughly 6,000 quiz questions on India and some 
+    general topics.
+    """
+    p = pipeline.Pipeline(
+        download_inputer('quiz/quiz.txt'),
+        pipeline.line_extractor('\t'),
+        pipeline.remove_tokenizer(
+            pipeline.stopword_tokenizer(
+                pipeline.default_tokenizer(),
+                itertools.chain(open_download('stopwords/english.txt'))
+            ),
+            r'^(.{0,2}|.{15,})$', # remove any token t with len(t)<=2 or len(t)>=15
+        ),
+        pipeline.composite_labeler(
+            pipeline.title_labeler('id'),
+            pipeline.string_labeler(
+                open_download('quiz/quiz.stars'),
+                'answer'
+            ),
+        ),
+        pipeline.length_filterer(),
+    )
+    p.tokenizer = pipeline.frequency_tokenizer(p, 33, 668)
+    return p.run(_path('quiz.pickle'))
+
+def science():
+    """Gets a corpus containing roughly 60000 science textbook sections.
+    """
+    def binary_labeler(data, threshold, attr='label', delim='\t'):
+        stream = (line.rstrip(os.linesep).split(delim, 1) for line in data)
+        stream = ((key, float(value) >= threshold) for key, value in stream)
+        return pipeline.stream_labeler(stream, attr)
+
+    p = pipeline.Pipeline(
+        download_inputer('science/science.txt'),
+        pipeline.line_extractor('\t'),
+        pipeline.remove_tokenizer(
+            pipeline.stopword_tokenizer(
+                pipeline.default_tokenizer(),
+                itertools.chain(open_download('stopwords/short.txt'))
+            ),
+            r'^(.{0,2}|.{15,})$', # remove any token t with len(t)<=2 or len(t)>=15
+        ),
+        pipeline.composite_labeler(
+	    pipeline.title_labeler('id'),
+            pipeline.float_labeler(
+                open_download('science/science.stars'),
+                'rating',
+            ),
+            _binary_string_labeler(
+                open_download('science/science.stars'),
+                5,
+                'binary_rating',
+            ),
+       ),
+        pipeline.length_filterer(),
+    )
+    p.tokenizer = pipeline.frequency_tokenizer(p, 33, 668)
+    return p.run(_path('science.pickle'))
+
+def sciencep():
+    """Gets a corpus containing roughly 6,000 quiz questions on India and some 
+    general topics.
+    """
+    def binary_labeler(data, threshold, attr='label', delim='\t'):
+        stream = (line.rstrip(os.linesep).split(delim, 1) for line in data)
+        stream = ((key, float(value) >= threshold) for key, value in stream)
+        return pipeline.stream_labeler(stream, attr)
+
+    p = pipeline.Pipeline(
+        download_inputer('sciencep/scienceh.txt'),
+        pipeline.line_extractor('\t'),
+        pipeline.remove_tokenizer(
+            pipeline.stopword_tokenizer(
+                pipeline.default_tokenizer(),
+                itertools.chain(open_download('stopwords/short.txt'))
+            ),
+            r'^(.{0,2}|.{15,})$', # remove any token t with len(t)<=2 or len(t)>=15
+        ),
+        pipeline.composite_labeler(
+	    pipeline.title_labeler('id'),
+            pipeline.float_labeler(
+                open_download('sciencep/scienceh.stars'),
+                'rating',
+            ),
+            _binary_string_labeler(
+                open_download('sciencep/scienceh.stars'),
+                5,
+                'binary_rating',
+            ),
+       ),
+        pipeline.length_filterer(1),
+    )
+    p.tokenizer = pipeline.frequency_tokenizer(p, 525, 10500)
+    return p.run(_path('sciencep.pickle'))
+
 def newsgroups():
     """Gets a Corpus containing roughly 20,000 usenet postings from 20
     different newsgroups in the early 1990's.
@@ -299,7 +397,7 @@ def amazon_medium():
         pipeline.length_filterer(),
     )
 
-    p.tokenizer = pipeline.frequency_tokenizer(p, 100, 2000)
+    p.tokenizer = pipeline.frequency_tokenizer(p, 1000, 2000)
     return p.run(_path('amazon_medium.pickle'))
 
 def amazon():
@@ -334,6 +432,7 @@ def amazon():
     )
     p.tokenizer = pipeline.frequency_tokenizer(p, 50)
     return p.run(_path('amazon.pickle'))
+
 
 class BufferedStream(object):
 
